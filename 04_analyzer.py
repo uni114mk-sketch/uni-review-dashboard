@@ -109,14 +109,29 @@ def get_all_branches() -> list:
 def get_reviews(branch_name: str) -> list:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("""
-        SELECT id, content, review_type
-        FROM naver_reviews
-        WHERE branch_name = ? AND content IS NOT NULL AND length(content) > 5
-    """, (branch_name,))
-    rows = cur.fetchall()
-    conn.close()
-    return [{"id": r[0], "content": r[1], "type": r[2]} for r in rows]
+
+    # review_type 컬럼 존재 여부 확인
+    cur.execute("PRAGMA table_info(naver_reviews)")
+    columns = [row[1] for row in cur.fetchall()]
+
+    if "review_type" in columns:
+        cur.execute("""
+            SELECT id, content, review_type
+            FROM naver_reviews
+            WHERE branch_name = ? AND content IS NOT NULL AND length(content) > 5
+        """, (branch_name,))
+        rows = cur.fetchall()
+        conn.close()
+        return [{"id": r[0], "content": r[1], "type": r[2]} for r in rows]
+    else:
+        cur.execute("""
+            SELECT id, content
+            FROM naver_reviews
+            WHERE branch_name = ? AND content IS NOT NULL AND length(content) > 5
+        """, (branch_name,))
+        rows = cur.fetchall()
+        conn.close()
+        return [{"id": r[0], "content": r[1], "type": "unknown"} for r in rows]
 
 
 # ──────────────────────────────────────────
