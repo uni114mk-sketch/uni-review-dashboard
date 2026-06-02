@@ -7,3 +7,4 @@ openpyxl
 xlrd
 lxml
 html5lib
+supabase
