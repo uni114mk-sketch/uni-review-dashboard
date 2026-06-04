@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>유앤아이의원 리뷰 분석</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── 변수 ── */
+:root {
+  --bg: #F2F4F8;
+  --surface: #FFFFFF;
+  --surface2: #F8F9FC;
+  --border: #E8ECF4;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --blue: #3B5BDB;
+  --blue-light: #EEF2FF;
+  --blue-mid: #4F6EF7;
+  --green: #0D9488;
+  --green-light: #F0FDF4;
+  --red: #E53E3E;
+  --red-light: #FFF5F5;
+  --amber: #D97706;
+  --amber-light: #FFFBEB;
+  --cyan: #0891B2;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+/* ── 리셋 ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body { font-family: 'Pretendard', -apple-system, sans-serif; background: var(--bg); color: var(--text-primary); min-height: 100vh; display: flex; }
+
+/* ── 사이드바 ── */
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  height: 100vh; position: sticky; top: 0;
+  overflow-y: auto;
+}
+.sb-brand { padding: 24px 18px 16px; border-bottom: 1px solid var(--border); }
+.sb-clinic { font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+.sb-name { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+.sb-tag { font-size: 11px; color: var(--blue-mid); font-weight: 600; margin-top: 2px; }
+.sb-nav { flex: 1; padding: 10px 10px; }
+.nav-sec { font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; padding: 10px 8px 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; color: var(--text-secondary);
+  cursor: pointer; margin-bottom: 1px; transition: all 0.15s;
+  border: none; background: transparent; width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text-primary); }
+.nav-item.active { background: var(--blue-light); color: var(--blue-mid); font-weight: 600; }
+.nav-score {
+  margin-left: auto; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 20px;
+}
+.score-high { background: var(--blue-light); color: var(--blue-mid); }
+.score-mid { background: #F3F4F6; color: var(--text-secondary); }
+.score-warn { background: var(--amber-light); color: var(--amber); }
+.score-danger { background: var(--red-light); color: var(--red); }
+.sb-footer { padding: 12px; border-top: 1px solid var(--border); }
+.sb-kpi-row { display: flex; gap: 6px; }
+.sb-kpi { flex: 1; background: var(--surface2); border-radius: var(--radius-sm); padding: 8px 10px; }
+.sb-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.sb-kpi-val { font-size: 18px; font-weight: 700; margin-top: 1px; }
+
+/* ── 메인 ── */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 12px 24px; display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.topbar-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.tb-badge {
+  font-size: 11px; font-weight: 600; padding: 4px 12px;
+  border-radius: 20px; background: var(--surface2);
+  border: 1px solid var(--border); color: var(--text-secondary);
+}
+.content { padding: 20px 24px; flex: 1; }
+
+/* ── 카드 ── */
+.card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px 20px; box-shadow: var(--shadow); }
+.card-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+
+/* ── 메트릭 ── */
+.metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 18px; }
+.mc { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 18px; box-shadow: var(--shadow); display: flex; align-items: flex-start; justify-content: space-between; position: relative; overflow: hidden; }
+.mc::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: var(--radius) var(--radius) 0 0; }
+.mc-blue::before { background: var(--blue-mid); }
+.mc-green::before { background: var(--green); }
+.mc-red::before { background: var(--red); }
+.mc-amber::before { background: var(--amber); }
+.mc-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+.mc-val { font-size: 26px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.mc-delta { font-size: 11px; color: var(--text-muted); margin-top: 5px; display: flex; align-items: center; gap: 3px; }
+.delta-up { color: var(--green); }
+.delta-dn { color: var(--red); }
+.mc-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+
+/* ── 그리드 ── */
+.grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-bottom: 14px; }
+.grid-2-eq { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+/* ── 바 차트 ── */
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; cursor: pointer; }
+.bar-row:hover .bar-label { color: var(--blue-mid); }
+.bar-label { font-size: 11px; color: var(--text-secondary); width: 68px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.12s; }
+.bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+.bar-val { font-size: 11px; font-weight: 600; color: var(--text-primary); width: 28px; text-align: right; flex-shrink: 0; }
+
+/* ── 도넛 ── */
+.donut-wrap { position: relative; height: 160px; }
+.donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; }
+.donut-pct { font-size: 22px; font-weight: 700; }
+.donut-lbl { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.legend { display: flex; justify-content: center; gap: 14px; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── 알림 ── */
+.alert-strip { background: var(--red-light); border-left: 4px solid var(--red); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding: 10px 14px; font-size: 12px; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
+/* ── 테이블 ── */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+.tbl td { font-size: 12px; padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:hover td { background: var(--surface2); cursor: pointer; }
+
+/* ── 뱃지 ── */
+.badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; display: inline-block; }
+.badge-high { background: var(--blue-light); color: var(--blue-mid); }
+.badge-mid { background: #F3F4F6; color: var(--text-secondary); }
+.badge-warn { background: var(--amber-light); color: var(--amber); }
+.badge-danger { background: var(--red-light); color: var(--red); }
+.badge-pos { background: var(--blue-light); color: var(--blue-mid); }
+.badge-neg { background: var(--red-light); color: var(--red); }
+
+/* ── 키워드 ── */
+.kw-box { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 12px; border: 1px solid var(--border); }
+.kw-sec-title { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+.kw-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.kw-list:last-child { margin-bottom: 0; }
+.kw { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.kw-pos { background: var(--blue-light); color: var(--blue-mid); }
+.kw-neg { background: var(--red-light); color: var(--red); }
+
+/* ── 리뷰 ── */
+.tabs { display: flex; gap: 2px; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 12px; }
+.tab { flex: 1; font-size: 12px; font-weight: 600; padding: 6px 8px; border-radius: 6px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; transition: all 0.15s; text-align: center; }
+.tab.active { background: var(--surface); color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.rv-card { padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 7px; border-left: 3px solid transparent; }
+.rv-card.pos { border-left-color: var(--blue-mid); }
+.rv-card.neg { border-left-color: var(--red); }
+.rv-card.neu { border-left-color: var(--border); }
+.rv-text { font-size: 13px; color: var(--text-primary); line-height: 1.7; }
+.rv-foot { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+.rv-src { font-size: 11px; color: var(--text-muted); }
+.empty { text-align: center; padding: 28px; color: var(--text-muted); font-size: 13px; }
+
+/* ── 트렌드 변화 ── */
+.change-row { display: flex; align-items: center; padding: 8px 12px; background: var(--surface2); border-radius: var(--radius-sm); margin-bottom: 5px; border: 1px solid var(--border); }
+.change-name { font-size: 12px; font-weight: 600; color: var(--text-primary); width: 75px; flex-shrink: 0; }
+.change-prev { font-size: 11px; color: var(--text-muted); }
+.change-arrow { font-size: 13px; color: var(--text-muted); margin: 0 6px; }
+.change-curr { font-size: 12px; font-weight: 600; }
+.change-delta { margin-left: auto; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+
+/* ── 페이지 타이틀 ── */
+.page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
+.page-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; margin-bottom: 18px; }
+
+/* ── 로딩 ── */
+.loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--text-muted); font-size: 13px; gap: 8px; }
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--blue-mid); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 탭 섹션 ── */
+.branch-tabs { display: flex; gap: 3px; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 14px; flex-wrap: wrap; }
+.btab { font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 6px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btab.active { background: var(--surface); color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+/* ── 반응형 ── */
+@media (max-width: 900px) {
+  .sidebar { width: 180px; }
+  .metrics { grid-template-columns: repeat(2,1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── 설정: Supabase 키 입력 ── -->
+<script>
+const SUPABASE_URL = "https://dyoveecqivfieklapyas.supabase.co";   // ← 입력
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR5b3ZlZWNxaXZmaWVrbGFweWFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzkyMTQsImV4cCI6MjA5NTkxNTIxNH0.l1wPbh61yfVDH0tNNrWV3ylU65lo8PldbS_3vOnZ_go"; // ← 입력
+</script>
+
+<!-- ── 사이드바 ── -->
+<nav class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-clinic">Clinic</div>
+    <div class="sb-name">유앤아이의원</div>
+    <div class="sb-tag">Review Dashboard</div>
+  </div>
+  <div class="sb-nav">
+    <div class="nav-sec">Overview</div>
+    <button class="nav-item active" onclick="navigate('all',this)">
+      <span>📊</span> 전체 현황
+    </button>
+    <button class="nav-item" onclick="navigate('trend',this)">
+      <span>📈</span> 주차별 트렌드
+    </button>
+    <div class="nav-sec">지점별</div>
+    <div id="branch-nav"></div>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-kpi-row">
+      <div class="sb-kpi">
+        <div class="sb-kpi-label">평균</div>
+        <div class="sb-kpi-val" id="sb-avg" style="color:var(--blue-mid)">-</div>
+      </div>
+      <div class="sb-kpi">
+        <div class="sb-kpi-label">주의</div>
+        <div class="sb-kpi-val" id="sb-danger" style="color:var(--red)">-</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── 메인 ── -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="tb-title">전체 지점 현황</div>
+      <div class="topbar-sub" id="tb-sub">데이터 로딩 중...</div>
+    </div>
+    <div class="topbar-right">
+      <span class="tb-badge" id="tb-badge">-</span>
+      <button onclick="refreshData()" style="font-size:11px;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;font-family:inherit;">새로고침</button>
+    </div>
+  </div>
+  <div class="content" id="content">
+    <div class="loading"><div class="spinner"></div> 데이터 불러오는 중...</div>
+  </div>
+</div>
+
+<script>
+// ── Supabase API 호출 ──
+async function sbFetch(table, params='') {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${params}`;
+  const res = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase 오류: ${res.status}`);
+  return res.json();
+}
+
+// ── 전역 데이터 ──
+let analysisData = [];
+let trendData    = [];
+let reviewCache  = {};
+let currentPage  = 'all';
+let currentBranch = '';
+let charts = [];
+
+function killCharts() { charts.forEach(c => c.destroy()); charts = []; }
+
+// ── 점수 색상 ──
+function scoreColor(v) {
+  if (v >= 80) return '#3B5BDB';
+  if (v >= 70) return '#0891B2';
+  if (v >= 60) return '#D97706';
+  if (v >= 50) return '#F97316';
+  return '#E53E3E';
+}
+function scoreBadgeClass(v) {
+  if (v >= 80) return 'badge-high';
+  if (v >= 70) return 'badge-mid';
+  if (v >= 50) return 'badge-warn';
+  return 'badge-danger';
+}
+function scoreNavClass(v) {
+  if (v >= 80) return 'score-high';
+  if (v >= 70) return 'score-mid';
+  if (v >= 50) return 'score-warn';
+  return 'score-danger';
+}
+
+// ── 출처 한글 변환 ──
+function srcLabel(s) {
+  const m = {naver:'네이버 플레이스', google:'구글 맵', manual:'직접 수집', survey:'자체 설문'};
+  return m[String(s).toLowerCase()] || s || '-';
+}
+
+// ── 데이터 로드 ──
+async function loadData() {
+  try {
+    analysisData = await sbFetch('analysis_results', 'select=*&order=전체점수.desc');
+    trendData    = await sbFetch('analysis_results', 'select=branch_name,analysis_date,전체점수,긍정비율,부정비율&order=analysis_date.asc');
+
+    // 지점별 최신 데이터만 사용
+    const latestMap = {};
+    analysisData.forEach(r => {
+      if (!latestMap[r.branch_name] || r.analysis_date > latestMap[r.branch_name].analysis_date) {
+        latestMap[r.branch_name] = r;
+      }
+    });
+    analysisData = Object.values(latestMap).sort((a,b) => b['전체점수'] - a['전체점수']);
+
+    buildSidebar();
+    navigate(currentPage, null);
+  } catch(e) {
+    document.getElementById('content').innerHTML = `
+      <div class="empty">
+        <div style="font-size:24px;margin-bottom:12px">⚠️</div>
+        <div style="font-weight:600;margin-bottom:6px">Supabase 연결 실패</div>
+        <div style="font-size:12px;color:var(--text-muted)">dashboard.html 파일 상단의 SUPABASE_URL과 SUPABASE_KEY를 확인해주세요.</div>
+      </div>`;
+  }
+}
+
+function buildSidebar() {
+  const avg     = analysisData.reduce((s,b) => s + b['전체점수'], 0) / analysisData.length;
+  const danger  = analysisData.filter(b => b['전체점수'] < 50).length;
+  document.getElementById('sb-avg').textContent    = avg.toFixed(1) + '점';
+  document.getElementById('sb-danger').textContent = danger + '개';
+
+  const nav = document.getElementById('branch-nav');
+  nav.innerHTML = analysisData.map(b => `
+    <button class="nav-item" onclick="navigate('branch',this,'${b.branch_name}')">
+      <span style="font-size:12px">📍</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.branch_name}</span>
+      <span class="nav-score ${scoreNavClass(b['전체점수'])}">${Math.round(b['전체점수'])}</span>
+    </button>
+  `).join('');
+}
+
+async function loadReviews(branch) {
+  if (reviewCache[branch]) return reviewCache[branch];
+  try {
+    const data = await sbFetch('reviews', `select=*&branch_name=eq.${encodeURIComponent(branch)}&limit=100`);
+    reviewCache[branch] = data;
+    return data;
+  } catch { return []; }
+}
+
+function refreshData() {
+  reviewCache = {};
+  analysisData = [];
+  trendData = [];
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div> 새로고침 중...</div>';
+  loadData();
+}
+
+// ── 네비게이션 ──
+function navigate(page, el, branch='') {
+  killCharts();
+  currentPage   = page;
+  currentBranch = branch;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  else if (page === 'all')   document.querySelectorAll('.nav-item')[0].classList.add('active');
+  else if (page === 'trend') document.querySelectorAll('.nav-item')[1].classList.add('active');
+
+  if (page === 'all')    renderAll();
+  else if (page === 'trend') renderTrend();
+  else                   renderBranch(branch);
+}
+
+// ────────────────────────────────────────
+// ── 전체 현황 ──
+// ────────────────────────────────────────
+function renderAll() {
+  const data = analysisData;
+  if (!data.length) { document.getElementById('content').innerHTML = '<div class="empty">데이터가 없습니다.</div>'; return; }
+
+  const avgScore = data.reduce((s,b) => s + b['전체점수'], 0) / data.length;
+  const avgPos   = data.reduce((s,b) => s + b['긍정비율'], 0) / data.length;
+  const avgNeg   = data.reduce((s,b) => s + b['부정비율'], 0) / data.length;
+  const danger   = data.filter(b => b['전체점수'] < 50);
+  const date     = data[0]?.analysis_date || '-';
+
+  document.getElementById('tb-title').textContent = '전체 지점 현황';
+  document.getElementById('tb-sub').textContent   = `분석 기준일: ${date} · ${data.length}개 지점`;
+  document.getElementById('tb-badge').textContent = `${data.length}개 지점`;
+
+  const items = ['친절도','시술효과','청결도','대기시간','상담','가격'];
+  const avgItem = items.map(h => {
+    const vals = data.map(b => b[h]).filter(v => v != null);
+    return { h, v: vals.length ? Math.round(vals.reduce((s,v) => s+v,0)/vals.length) : null };
+  }).filter(x => x.v != null);
+
+  document.getElementById('content').innerHTML = `
+    ${danger.map(b => `
+      <div class="alert-strip">⚠️ <b>${b.branch_name}</b> — ${Math.round(b['전체점수'])}점 | 긍정 ${Math.round(b['긍정비율'])}% / 부정 ${Math.round(b['부정비율'])}%</div>
+    `).join('')}
+
+    <div class="metrics">
+      <div class="mc mc-blue">
+        <div><div class="mc-label">총 지점 수</div><div class="mc-val">${data.length}<span style="font-size:15px;color:var(--text-muted)">개</span></div></div>
+        <div class="mc-icon" style="background:var(--blue-light)">🏥</div>
+      </div>
+      <div class="mc mc-green">
+        <div><div class="mc-label">평균 전체점수</div><div class="mc-val" style="color:var(--blue-mid)">${avgScore.toFixed(1)}<span style="font-size:15px">점</span></div></div>
+        <div class="mc-icon" style="background:#F0FDF4">📊</div>
+      </div>
+      <div class="mc mc-amber">
+        <div><div class="mc-label">평균 긍정 비율</div><div class="mc-val" style="color:var(--green)">${avgPos.toFixed(0)}<span style="font-size:15px">%</span></div></div>
+        <div class="mc-icon" style="background:var(--green-light)">👍</div>
+      </div>
+      <div class="mc mc-red">
+        <div><div class="mc-label">주의 지점</div><div class="mc-val" style="color:${danger.length?'var(--red)':'var(--green)'}">${danger.length}<span style="font-size:15px">개</span></div></div>
+        <div class="mc-icon" style="background:var(--red-light)">⚠️</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">지점별 전체점수 순위</div>
+        ${data.map(b => `
+          <div class="bar-row" onclick="navigate('branch',null,'${b.branch_name}')">
+            <span class="bar-label">${b.branch_name}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${b['전체점수']}%;background:${scoreColor(b['전체점수'])}"></div></div>
+            <span class="bar-val">${Math.round(b['전체점수'])}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title">항목별 전체 평균</div>
+          ${avgItem.map(({h,v}) => `
+            <div class="bar-row">
+              <span class="bar-label">${h}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${v}%;background:${scoreColor(v)}"></div></div>
+              <span class="bar-val">${v}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="card">
+          <div class="card-title">긍정 / 부정 비율</div>
+          <div class="donut-wrap">
+            <canvas id="donutChart" role="img" aria-label="긍정 ${Math.round(avgPos)}% 부정 ${Math.round(avgNeg)}%"></canvas>
+            <div class="donut-center">
+              <div class="donut-pct" style="color:var(--blue-mid)">${Math.round(avgPos)}%</div>
+              <div class="donut-lbl">긍정</div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--blue-mid)"></div>긍정 ${Math.round(avgPos)}%</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>부정 ${Math.round(avgNeg)}%</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#E5E7EB"></div>중립 ${Math.round(100-avgPos-avgNeg)}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const c = new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: { labels:['긋정','부정','중립'], datasets:[{ data:[avgPos,avgNeg,Math.max(0,100-avgPos-avgNeg)], backgroundColor:['#3B5BDB','#E53E3E','#E5E7EB'], borderWidth:2, borderColor:'#fff', hoverOffset:3 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} }, cutout:'68%' }
+  });
+  charts.push(c);
+}
+
+// ────────────────────────────────────────
+// ── 지점 상세 ──
+// ────────────────────────────────────────
+async function renderBranch(name) {
+  const b = analysisData.find(x => x.branch_name === name);
+  if (!b) return;
+
+  document.getElementById('tb-title').textContent = `📍 ${name}`;
+  document.getElementById('tb-sub').textContent   = `분석일: ${b.analysis_date} · 총 리뷰 ${b['총리뷰수'] || 0}건`;
+  document.getElementById('tb-badge').textContent = `${Math.round(b['전체점수'])}점`;
+
+  const posKw = JSON.parse(b['긍정키워드'] || '[]');
+  const negKw = JSON.parse(b['부정키워드'] || '[]');
+  const items = ['친절도','시술효과','청결도','대기시간','상담','가격'];
+  const scores = items.filter(h => b[h] != null);
+
+  document.getElementById('content').innerHTML = `
+    <div class="metrics">
+      <div class="mc mc-blue">
+        <div><div class="mc-label">전체점수</div><div class="mc-val" style="color:${scoreColor(b['전체점수'])}">${Math.round(b['전체점수'])}<span style="font-size:15px">점</span></div></div>
+        <div class="mc-icon" style="background:var(--blue-light)">🏆</div>
+      </div>
+      <div class="mc mc-green">
+        <div><div class="mc-label">긍정 비율</div><div class="mc-val" style="color:var(--blue-mid)">${Math.round(b['긍정비율'])}<span style="font-size:15px">%</span></div></div>
+        <div class="mc-icon" style="background:var(--green-light)">😊</div>
+      </div>
+      <div class="mc mc-red">
+        <div><div class="mc-label">부정 비율</div><div class="mc-val" style="color:var(--red)">${Math.round(b['부정비율'])}<span style="font-size:15px">%</span></div></div>
+        <div class="mc-icon" style="background:var(--red-light)">😞</div>
+      </div>
+      <div class="mc mc-amber">
+        <div><div class="mc-label">총 리뷰</div><div class="mc-val">${b['총리뷰수'] || 0}<span style="font-size:15px">건</span></div></div>
+        <div class="mc-icon" style="background:var(--amber-light)">💬</div>
+      </div>
+    </div>
+
+    <div class="grid-2-eq">
+      <div class="card">
+        <div class="card-title">항목별 점수</div>
+        ${scores.map(h => `
+          <div class="bar-row">
+            <span class="bar-label">${h}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${b[h]}%;background:${scoreColor(b[h])}"></div></div>
+            <span class="bar-val">${Math.round(b[h])}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">긍정 / 부정 비율</div>
+        <div class="donut-wrap" style="height:140px">
+          <canvas id="donutBranch" role="img" aria-label="${name} 긍정 ${Math.round(b['긍정비율'])}%"></canvas>
+          <div class="donut-center">
+            <div class="donut-pct" style="color:var(--blue-mid)">${Math.round(b['긍정비율'])}%</div>
+            <div class="donut-lbl">긍정</div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--blue-mid)"></div>긍정 ${Math.round(b['긍정비율'])}%</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>부정 ${Math.round(b['부정비율'])}%</div>
+        </div>
+        <div class="kw-box">
+          ${posKw.length ? `<div class="kw-sec-title" style="color:var(--blue-mid)">긍정 키워드</div><div class="kw-list">${posKw.map(k=>`<span class="kw kw-pos">👍 ${k}</span>`).join('')}</div>` : ''}
+          ${negKw.length ? `<div class="kw-sec-title" style="color:var(--red)">부정 키워드</div><div class="kw-list">${negKw.map(k=>`<span class="kw kw-neg">👎 ${k}</span>`).join('')}</div>` : ''}
+          ${!posKw.length && !negKw.length ? '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:8px">키워드 데이터 없음</div>' : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">리뷰 원문</div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('pos',this)">👍 긍정 리뷰</button>
+        <button class="tab" onclick="switchTab('neg',this)">👎 부정 리뷰</button>
+        <button class="tab" onclick="switchTab('all',this)">📋 전체</button>
+      </div>
+      <div id="rv-loading" class="loading"><div class="spinner"></div> 리뷰 불러오는 중...</div>
+      <div id="rv-pos" style="display:none"></div>
+      <div id="rv-neg" style="display:none"></div>
+      <div id="rv-all" style="display:none"></div>
+    </div>
+  `;
+
+  const dc = new Chart(document.getElementById('donutBranch'), {
+    type:'doughnut',
+    data:{ labels:['긍정','부정','중립'], datasets:[{ data:[b['긍정비율'],b['부정비율'],Math.max(0,100-b['긍정비율']-b['부정비율'])], backgroundColor:['#3B5BDB','#E53E3E','#E5E7EB'], borderWidth:2, borderColor:'#fff', hoverOffset:3 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, cutout:'68%' }
+  });
+  charts.push(dc);
+
+  // 리뷰 로드
+  const reviews = await loadReviews(name);
+  document.getElementById('rv-loading').style.display = 'none';
+
+  function classify(r) {
+    const t = (r.review_type || '').toLowerCase();
+    if (t === 'positive') return 'positive';
+    if (t === 'negative') return 'negative';
+    const rt = parseFloat(r.rating);
+    if (!isNaN(rt)) return rt >= 4 ? 'positive' : rt <= 3 ? 'negative' : 'neutral';
+    return 'neutral';
+  }
+
+  function rvHTML(list, cls, badgeHTML) {
+    if (!list.length) return '<div class="empty">리뷰가 없습니다.</div>';
+    return list.slice(0,30).map(r => {
+      const txt = (r.content || '').trim();
+      if (!txt || txt === 'nan') return '';
+      return `<div class="rv-card ${cls}"><div class="rv-text">${txt}</div><div class="rv-foot">${badgeHTML}<span class="rv-src">출처: ${srcLabel(r.source)}</span></div></div>`;
+    }).join('');
+  }
+
+  reviews.forEach(r => r._cls = classify(r));
+  const posRv = reviews.filter(r => r._cls === 'positive');
+  const negRv = reviews.filter(r => r._cls === 'negative');
+
+  document.getElementById('rv-pos').innerHTML = rvHTML(posRv, 'pos', '<span class="badge badge-pos">긍정</span>');
+  document.getElementById('rv-neg').innerHTML = rvHTML(negRv, 'neg', '<span class="badge badge-neg">부정</span>');
+  document.getElementById('rv-all').innerHTML = rvHTML(reviews, '', '');
+
+  // 탭 건수 업데이트
+  document.querySelectorAll('.tab')[0].textContent = `👍 긍정 리뷰 ${posRv.length}건`;
+  document.querySelectorAll('.tab')[1].textContent = `👎 부정 리뷰 ${negRv.length}건`;
+  document.querySelectorAll('.tab')[2].textContent = `📋 전체 ${reviews.length}건`;
+  document.getElementById('rv-pos').style.display = 'block';
+}
+
+function switchTab(t, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['pos','neg','all'].forEach(k => {
+    const el = document.getElementById('rv-'+k);
+    if (el) el.style.display = k === t ? 'block' : 'none';
+  });
+}
+
+// ────────────────────────────────────────
+// ── 주차별 트렌드 ──
+// ────────────────────────────────────────
+function renderTrend() {
+  document.getElementById('tb-title').textContent = '주차별 트렌드';
+  document.getElementById('tb-sub').textContent   = '매주 분석 결과 기반 점수 변화 추이';
+  document.getElementById('tb-badge').textContent = '';
+
+  const dates = [...new Set(trendData.map(r => r.analysis_date))].sort();
+  if (dates.length < 2) {
+    document.getElementById('content').innerHTML = `
+      <div class="empty" style="padding:48px">
+        <div style="font-size:32px;margin-bottom:12px">📈</div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:6px">트렌드 데이터 준비 중</div>
+        <div style="font-size:13px;color:var(--text-muted)">최소 2주 이상의 분석 데이터가 필요합니다.<br>매주 분석을 실행하면 자동으로 쌓입니다.</div>
+      </div>`;
+    return;
+  }
+
+  const latest = trendData.filter(r => r.analysis_date === dates[dates.length-1]);
+  const prev   = trendData.filter(r => r.analysis_date === dates[dates.length-2]);
+  const latestAvg = latest.reduce((s,r) => s + r['전체점수'], 0) / latest.length;
+  const prevAvg   = prev.reduce((s,r) => s + r['전체점수'], 0) / prev.length;
+  const deltaAvg  = latestAvg - prevAvg;
+
+  const branches = [...new Set(trendData.map(r => r.branch_name))].sort();
+  let upCount=0, dnCount=0, maxUpBranch='-', maxUpVal=0;
+  branches.forEach(b => {
+    const l = latest.find(r => r.branch_name===b);
+    const p = prev.find(r => r.branch_name===b);
+    if (l && p) {
+      const d = l['전체점수'] - p['전체점수'];
+      if (d > 0) { upCount++; if (d > maxUpVal) { maxUpVal=d; maxUpBranch=b; } }
+      else if (d < 0) dnCount++;
+    }
+  });
+
+  // 전체 평균 추이
+  const overallAvg = dates.map(d => {
+    const vals = trendData.filter(r => r.analysis_date===d).map(r => r['전체점수']);
+    return { date:d, avg: vals.reduce((s,v)=>s+v,0)/vals.length };
+  });
+
+  // 변화 목록
+  const changes = branches.map(b => {
+    const l = latest.find(r => r.branch_name===b);
+    const p = prev.find(r => r.branch_name===b);
+    if (!l || !p) return null;
+    return { name:b, prev:p['전체점수'].toFixed(1), curr:l['전체점수'].toFixed(1), delta:(l['전체점수']-p['전체점수']).toFixed(1) };
+  }).filter(Boolean).sort((a,b) => b.delta - a.delta);
+
+  document.getElementById('content').innerHTML = `
+    <div class="metrics">
+      <div class="mc mc-blue">
+        <div>
+          <div class="mc-label">이번 주 평균점수</div>
+          <div class="mc-val" style="color:var(--blue-mid)">${latestAvg.toFixed(1)}<span style="font-size:15px">점</span></div>
+          <div class="mc-delta ${deltaAvg>=0?'delta-up':'delta-dn'}">${deltaAvg>=0?'↑':'↓'} 전주 대비 ${deltaAvg>=0?'+':''}${deltaAvg.toFixed(1)}점</div>
+        </div>
+        <div class="mc-icon" style="background:var(--blue-light)">📊</div>
+      </div>
+      <div class="mc mc-green">
+        <div>
+          <div class="mc-label">점수 상승 지점</div>
+          <div class="mc-val" style="color:var(--green)">${upCount}<span style="font-size:15px">개</span></div>
+          <div class="mc-delta delta-up">↑ 전주 대비 상승</div>
+        </div>
+        <div class="mc-icon" style="background:var(--green-light)">📈</div>
+      </div>
+      <div class="mc mc-red">
+        <div>
+          <div class="mc-label">점수 하락 지점</div>
+          <div class="mc-val" style="color:var(--red)">${dnCount}<span style="font-size:15px">개</span></div>
+          <div class="mc-delta delta-dn">↓ 전주 대비 하락</div>
+        </div>
+        <div class="mc-icon" style="background:var(--red-light)">📉</div>
+      </div>
+      <div class="mc mc-amber">
+        <div>
+          <div class="mc-label">최대 상승 지점</div>
+          <div class="mc-val" style="font-size:18px">${maxUpBranch}</div>
+          <div class="mc-delta delta-up">↑ +${maxUpVal.toFixed(1)}점</div>
+        </div>
+        <div class="mc-icon" style="background:var(--amber-light)">🏆</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">전체 평균 점수 추이</div>
+        <div style="position:relative;height:220px"><canvas id="trendChart" role="img" aria-label="주차별 전체 평균 점수 추이"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">지점별 전주 대비 변화</div>
+        <div style="max-height:260px;overflow-y:auto">
+          ${changes.map(c => {
+            const d = parseFloat(c.delta);
+            const color = d>0?'var(--green)':d<0?'var(--red)':'var(--text-muted)';
+            const bg    = d>0?'var(--green-light)':d<0?'var(--red-light)':'#F3F4F6';
+            const arrow = d>0?'▲':d<0?'▼':'━';
+            return `<div class="change-row">
+              <span class="change-name">${c.name}</span>
+              <span class="change-prev">${c.prev}점</span>
+              <span class="change-arrow">→</span>
+              <span class="change-curr" style="color:${color}">${c.curr}점</span>
+              <span class="change-delta" style="background:${bg};color:${color}">${arrow} ${Math.abs(d).toFixed(1)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">지점별 상세 트렌드</div>
+      <div class="branch-tabs" id="branchTabs">
+        ${branches.slice(0,8).map((b,i) => `<button class="btab ${i===0?'active':''}" onclick="switchBranchTrend('${b}',this)">${b}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary)"><span style="width:10px;height:10px;border-radius:2px;background:#3B5BDB;display:inline-block"></span>전체점수</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary)"><span style="width:10px;height:2px;background:var(--green);display:inline-block"></span>긍정비율</span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary)"><span style="width:10px;height:2px;background:var(--red);display:inline-block"></span>부정비율</span>
+      </div>
+      <div style="position:relative;height:240px"><canvas id="branchTrendChart" role="img" aria-label="지점별 주차 트렌드"></canvas></div>
+    </div>
+  `;
+
+  // 전체 추이 차트
+  const tc = new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data:{ labels:overallAvg.map(x=>x.date), datasets:[{
+      data:overallAvg.map(x=>Math.round(x.avg*10)/10),
+      borderColor:'#3B5BDB', backgroundColor:'rgba(59,91,219,0.07)',
+      borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#3B5BDB',
+      fill:true, tension:0.4,
+    }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`평균 ${c.parsed.y}점`}}}, scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},callback:v=>v+'점'},min:0,max:100}} }
+  });
+  charts.push(tc);
+
+  // 첫 지점 트렌드
+  if (branches.length) switchBranchTrend(branches[0], document.querySelector('.btab'));
+}
+
+function switchBranchTrend(name, btn) {
+  document.querySelectorAll('.btab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const oldChart = charts.find(c => c.canvas?.id === 'branchTrendChart');
+  if (oldChart) { oldChart.destroy(); charts = charts.filter(c => c !== oldChart); }
+
+  const dates = [...new Set(trendData.map(r => r.analysis_date))].sort();
+  const bData = dates.map(d => trendData.find(r => r.branch_name===name && r.analysis_date===d));
+
+  const bc = new Chart(document.getElementById('branchTrendChart'), {
+    type:'line',
+    data:{ labels:dates, datasets:[
+      { label:'전체점수', data:bData.map(r=>r?Math.round(r['전체점수']*10)/10:null), borderColor:'#3B5BDB', backgroundColor:'rgba(59,91,219,0.07)', borderWidth:2.5, pointRadius:4, fill:true, tension:0.4, spanGaps:true },
+      { label:'긍정비율', data:bData.map(r=>r?Math.round(r['긍정비율']*10)/10:null), borderColor:'#0D9488', backgroundColor:'transparent', borderWidth:2, borderDash:[5,3], pointRadius:3, fill:false, tension:0.4, spanGaps:true },
+      { label:'부정비율', data:bData.map(r=>r?Math.round(r['부정비율']*10)/10:null), borderColor:'#E53E3E', backgroundColor:'transparent', borderWidth:2, borderDash:[2,3], pointRadius:3, fill:false, tension:0.4, spanGaps:true },
+    ] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{mode:'index', intersect:false, callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}${c.datasetIndex===0?'점':'%'}`}}}, scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}},min:0,max:100}}, interaction:{mode:'index',intersect:false} }
+  });
+  charts.push(bc);
+}
+
+// ── 시작 ──
+window.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>
