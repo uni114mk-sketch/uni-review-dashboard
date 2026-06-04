@@ -24,7 +24,7 @@ from pathlib import Path
 # ──────────────────────────────────────────
 # 설정
 # ──────────────────────────────────────────
-GOOGLE_API_KEY = "YAIzaSyC75mP62UG__0KG1Ys-pe48ea1cFcYAIBs"   # ← Google API 키 입력
+GOOGLE_API_KEY = "AIzaSyC75mP62UG__0KG1Ys-pe48ea1cFcYAIBs"   # ← Google API 키 입력
 
 BRANCHES = {
     "강남점":  "ChIJqXgJdQCjfDUR09hdYqbWpWI",   # ← Google Place ID로 교체
@@ -35,7 +35,7 @@ BRANCHES = {
     "홍대신촌점":    "ChIJ6eN1Ov6ZfDUR7Il0afHrvZE",
     "영등포점":    "ChIJxab1sbuffDURt2-SPWNKb7Q",
     "마곡점":    "ChIJV9Zg_uedfDURabf2qkGy7qE",
-    "건대점":    " ChIJy9moa9-lfDURuVvvP1y-ER8",
+    "건대점":    "ChIJy9moa9-lfDURuVvvP1y-ER8",
     "구로점":    "ChIJsURvGMGffDUR3Lwg8JikUGA",
     "여의도점":    "ChIJhyToqViffDURPKzzt5MJTRk",
     "천호점":    "ChIJE7xDBQClfDURIkUq_Xlr7XI",

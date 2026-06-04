@@ -26,6 +26,7 @@ from playwright.async_api import async_playwright
 # 설정: 지점명과 네이버 플레이스 ID 입력
 # ──────────────────────────────────────────
 BRANCHES = {
+  
     "강남점":  "1380019560",   # ← 실제 플레이스 ID로 교체
     "선릉점":    "11824279",
     "잠실점":    "32811697",
@@ -69,13 +70,14 @@ BRANCHES = {
     "대구점":    "1546398821",
     "부산점":    "1321788535",
     "창원점":    "1465131782",
+
     
     # 나머지 지점 동일한 형식으로 추가...
 }
 
 MAX_REVIEWS_PER_BRANCH = 50   # 지점당 최대 수집 리뷰 수
-DELAY_MIN = 2.0               # 요청 간 최소 딜레이 (초) — 서버 부하 방지
-DELAY_MAX = 4.0               # 요청 간 최대 딜레이 (초)
+DELAY_MIN = 4.0               # 요청 간 최소 딜레이 (초) — 서버 부하 방지
+DELAY_MAX = 8.0               # 요청 간 최대 딜레이 (초)
 DB_PATH = "reviews.db"        # SQLite DB 파일 경로
 
 # ──────────────────────────────────────────
@@ -160,7 +162,7 @@ async def scrape_branch(page, branch_name: str, place_id: str) -> list[dict]:
     print(f"  📍 {branch_name} ({place_id}) 접속 중...")
 
     try:
-        await page.goto(url, wait_until="networkidle", timeout=30000)
+        await page.goto(url, wait_until="domcontentloaded", timeout=60000)
         await asyncio.sleep(random.uniform(1.5, 2.5))
 
         # ── 리뷰 더보기 반복 클릭 (최대 MAX_REVIEWS까지) ──
@@ -341,7 +343,7 @@ async def main():
     async with async_playwright() as p:
         # headless=False 로 바꾸면 브라우저 화면이 보입니다 (디버깅용)
         browser = await p.chromium.launch(
-            headless=True,
+            headless=False,
             args=["--no-sandbox", "--disable-setuid-sandbox"],
         )
         context = await browser.new_context(
